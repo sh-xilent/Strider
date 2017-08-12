@@ -1,88 +1,137 @@
 import Types from 'types/types';
-import BeanType from 'constants/bean-type';
-import BeanConfig from 'config/bean-config';
+import BeanScope from 'constants/bean-scope';
+import ProcessorScope from 'constants/processor-scope';
+import {BeanConfig} from 'config/bean-config';
 
 export default function BeanInjectionService(beanConfig) {
     Types.check(arguments, BeanConfig);
 
-    const moduleServices = beanConfig.getModules()
-        .map((moduleConfig) => new BeanInjectionService(moduleConfig));
-
-    let processors = [];
-    let initQueue = [];
-
-    initProcessors();
+    const root = buildRoot();
 
     return Object.assign(this, {
         getBean
     });
 
     function getBean(name) {
-        const beanDescriptor = beanConfig.getBeanDescriptor(name);
-        if (!beanDescriptor) {
-            return moduleServices
-                .map((moduleService) => moduleService.getBean(name))
-                .find((bean) => bean);
-        }
-        if (beanDescriptor.instances.length) {
-            return beanDescriptor.instances[beanDescriptor.instances.length - 1];
-        }
-        return initBean(beanDescriptor);
+        return root.getBean(name);
     }
 
-    function initProcessors() {
-        processors = processors.concat(beanConfig.getProcessors()
-            .map(initProcessor));
+    function buildRoot() {
+        const processedNodes = {};
+        const globalProcessors = [];
+        return buildNode(beanConfig, processedNodes, globalProcessors);
     }
 
-    function initProcessor(processor) {
-        const dependencies = resolveDependencies(processor);
-        return new (Function.prototype.bind.apply(processor.class, [null].concat(dependencies)));
+    function buildNode(config, processedNodes, globalProcessors) {
+        if (processedNodes[config.id]) {
+            return processedNodes[config.id];
+        }
+        const childNodes = config.childConfigs
+            .map((child) => buildNode(child, processedNodes, globalProcessors));
+
+        const node = new Beans(config, childNodes, globalProcessors);
+        processedNodes[config.id] = node;
+
+        return node;
+    }
+}
+
+function Beans(beanConfig, childBeans, globalProcessors) {
+
+    const instances = {};
+
+    const pendingInit = {};
+
+    const processors = initProcessors(ProcessorScope.LOCAL);
+    applyGlobalProcessors(initProcessors(ProcessorScope.GLOBAL));
+
+    return Object.assign(this, {
+        getBean
+    });
+
+    function getBean(name) {
+        if (instances[name]) {
+            return instances[name];
+        }
+        if (beanConfig.beans[name]) {
+            return initBean(beanConfig.beans[name]);
+        }
+        return childBeans
+            .map((child) => child.getBean(name))
+            .find((bean) => bean);
+    }
+
+    function applyGlobalProcessors(processors) {
+        processors.forEach((processor) => globalProcessors.push(processor));
+    }
+
+    function initProcessors(scope) {
+        return beanConfig.processors
+            .filter((descriptor) => descriptor.scope === scope)
+            .map(initProcessor)
+    }
+
+    function initProcessor(processorDescriptor) {
+        const dependencies = resolveDependencies(processorDescriptor);
+        return createInstance(processorDescriptor, dependencies);
     }
 
     function initBean(beanDescriptor) {
-        assertCyclicDependencies(beanDescriptor);
-        initQueue.push(beanDescriptor.name);
+        assertCyclicDependency(beanDescriptor);
+        pendingInit[beanDescriptor.name] = true;
 
-        let beanInstance;
         try {
             const dependencies = resolveDependencies(beanDescriptor);
 
-            beanInstance = new (Function.prototype.bind.apply(
-                beanDescriptor.class || beanDescriptor.factoryClass,
-                [null].concat(dependencies)
-            ));
-            if (beanDescriptor.type === BeanType.FACTORY_BEAN) {
-                beanInstance = beanInstance.create();
+            let instance = createInstance(beanDescriptor, dependencies);
+            instance = postProcessInstance(instance);
+
+            if (beanDescriptor.scope !== BeanScope.PROTOTYPE) {
+                instances[beanDescriptor.name] = instance;
             }
-            processors.forEach((processor) => beanInstance = processor.process(beanInstance));
+            return instance;
 
-            beanConfig.registerInstance(beanDescriptor.name, beanInstance);
         } finally {
-            initQueue = initQueue.filter((name) => name === beanDescriptor.name);
+            delete pendingInit[beanDescriptor.name];
         }
+    }
 
-        return beanInstance;
+    function postProcessInstance(instance) {
+        if (processors) {
+            processors.forEach((processor) => instance = processor.process(instance));
+        }
+        if (globalProcessors) {
+            globalProcessors.forEach((processor) => instance = processor.process(instance));
+        }
+        return instance;
+    }
+
+    function createInstance(beanDescriptor, dependencies) {
+        const instance = new (Function.prototype.bind.apply(
+            beanDescriptor.class,
+            [null].concat(dependencies)
+        ));
+        return beanDescriptor.factory ? instance.create() : instance;
     }
 
     function resolveDependencies({dependencies}) {
         return dependencies
-            .map((dependency) => {
-                const dependencyBean = getBean(dependency);
-                assertUnresolvedDependency(dependencyBean, dependency);
+            .map((dependencyName) => {
+                const dependencyBean = getBean(dependencyName);
+                assertUnresolvedDependency(dependencyBean, dependencyName);
                 return dependencyBean;
             });
     }
 
-    function assertCyclicDependencies(beanDescriptor) {
-        if (initQueue.some((bean) => bean === beanDescriptor.name)) {
-            throw new Error(`Cyclic dependencies detected ${beanDescriptor.name}`);
+    function assertUnresolvedDependency(instance, dependencyName) {
+        if (!instance && !beanConfig.optionalDependencies) {
+            throw new Error(`Dependency '${dependencyName}' could not be resolved`);
         }
     }
 
-    function assertUnresolvedDependency(dependencyBean, dependency) {
-        if (!dependencyBean && !beanConfig.isOptionalDependencies()) {
-            throw new Error(`Dependency ${dependency} could not be resolved`);
+    function assertCyclicDependency({name}) {
+        if (pendingInit[name]) {
+            throw new Error(`Cyclic dependencies detected'${name}'`);
         }
     }
 }

@@ -1,142 +1,183 @@
-import ObjectUtil from 'objects/object-util';
-import BeanType from 'constants/bean-type';
-
-const OBJECT_UTIL = new ObjectUtil();
+import Types from 'types/types';
+import Model from 'models/model';
+import BeanScope from 'constants/bean-scope';
+import ProcessorScope from 'constants/processor-scope';
 
 const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 const ARGUMENT_NAMES = /([^\s,]+)/g;
 
-export default function BeanConfig(moduleName, parentConfig) {
+export const BeanConfig = Model.create({
+    /**
+     *
+     */
+    id: null,
+
+    /**
+     *
+     */
+    beans: {},
+
+    /**
+     *
+     */
+    instances: {},
+
+    /**
+     *
+     */
+    processors: [],
+
+    /**
+     *
+     */
+    optionalDependencies: false,
+
+    /**
+     *
+     */
+    childConfigs: []
+});
+
+const BeanDescriptor = Model.create({
+    /**
+     *
+     */
+    class: null,
+
+    /**
+     *
+     */
+    name: null,
+
+    /**
+     *
+     */
+    factory: false,
+
+    /**
+     *
+     */
+    scope: BeanScope.SINGLETON,
+
+    /**
+     *
+     */
+    dependencies: []
+});
+
+const ProcessorDescriptor = Model.create({
+    /**
+     *
+     */
+    class: null,
+
+    /**
+     *
+     */
+    scope: ProcessorScope.LOCAL,
+
+    /**
+     *
+     */
+    dependencies: []
+});
+
+let IDS_COUNTER = 0;
+
+export default function BeanConfigBuilder() {
 
     const _this = this;
 
-    const config = {};
-    const modules = [];
-    const processors = [];
+    const id = IDS_COUNTER++;
 
-    let optionalDependencies = parentConfig ? parentConfig.isOptionalDependencies() : false;
+    const beanDescriptors = {};
+    const instances = {};
+    const processorDescriptors = [];
+    const childConfigBuilders = [];
+
+    let optionalDependencies = false;
 
     return Object.assign(this, {
-        getModuleName,
-        getModules,
-        getBeanDescriptor,
-        getProcessors,
-        withOptionalDependencies,
-        isOptionalDependencies,
         factory,
         service,
         bean,
-        beanInstance,
+        instance,
         processor,
-        module,
-        dependency,
-        parent,
-        registerInstance
+        setOptionalDependencies,
+        childConfig,
+        build
     });
 
-    function getModuleName() {
-        return moduleName;
-    }
-
-    function getModules() {
-        return OBJECT_UTIL.clone(modules);
-    }
-
-    function getBeanDescriptor(name) {
-        let beanConfig = config[name];
-        return beanConfig && OBJECT_UTIL.deepClone(beanConfig);
-    }
-
-    function getProcessors() {
-        return OBJECT_UTIL.clone(processors);
-    }
-
-    function withOptionalDependencies(isOptional) {
-        optionalDependencies = isOptional;
+    function factory(factoryClass, name, scope) {
+        const descriptor = buildDescriptor(factoryClass, scope, name, null, true);
+        beanDescriptors[descriptor.name] = descriptor;
         return _this;
     }
 
-    function isOptionalDependencies() {
-        return optionalDependencies;
-    }
-
-    function factory(targetBean, factoryClass, name, dependencies) {
-        const beanConfig = registerBean(factoryClass, name, dependencies, BeanType.FACTORY_BEAN);
-        beanConfig.targetBean = targetBean;
-
-        config[targetBean] = {
-            targetBean,
-            factoryClass: factoryClass,
-            dependencies: OBJECT_UTIL.clone(beanConfig.dependencies),
-            type: BeanType.FACTORY_BEAN,
-            instances: []
-        };
-
+    function service(serviceClass, name, depsOverride) {
+        const descriptor = buildDescriptor(serviceClass, BeanScope.SINGLETON, name, depsOverride);
+        beanDescriptors[descriptor.name] = descriptor;
         return _this;
     }
 
-    function service(serviceClass, name, dependencies) {
-        registerBean(serviceClass, name, dependencies, BeanType.SERVICE_BEAN);
+    function bean(beanClass, scope, name, depsOverride) {
+        const descriptor = buildDescriptor(beanClass, scope, name, depsOverride);
+        beanDescriptors[descriptor.name] = descriptor;
         return _this;
     }
 
-    function bean(beanClass, name, dependencies) {
-        registerBean(beanClass, name, dependencies, BeanType.PLAIN_BEAN);
+    function instance(beanInstance, name) {
+        instances[name] = beanInstance;
         return _this;
     }
 
-    function beanInstance(instance, name) {
-        config[name] = {
-            class: instance.constructor,
-            name,
-            type: BeanType.PLAIN_BEAN,
-            dependencies: [],
-            instances: [instance]
-        };
-        return _this;
-    }
-
-    function processor(processor) {
-        const dependencies = getParamNames(processor);
-        processors.push({
-            class: processor,
+    function processor(processorClass, scope = ProcessorScope.LOCAL, depsOverride) {
+        const dependencies = depsOverride || getParamNames(processorClass);
+        processorDescriptors.push({
+            class: processorClass,
+            scope,
             dependencies
         });
         return _this;
     }
 
-    function module(moduleName) {
-        const moduleConfig = new BeanConfig(moduleName, this);
-        modules.push(moduleConfig);
-        return moduleConfig;
-    }
-
-    function dependency(module) {
-        modules.push(module);
+    function setOptionalDependencies(isOptional) {
+        optionalDependencies = isOptional;
         return _this;
     }
 
-    function parent() {
-        return parentConfig;
+    function childConfig(config) {
+        Types.checkType(config, BeanConfigBuilder);
+        childConfigBuilders.push(config);
+        return _this;
     }
 
-    function registerInstance(beanName, instance) {
-        if (config[beanName]) {
-            config[beanName].instances.push(instance);
+    function build() {
+        const beans = prepareModels(beanDescriptors, BeanDescriptor);
+        const processors = prepareModels(processorDescriptors, ProcessorDescriptor);
+        const childConfigs = childConfigBuilders.map((config) => config.build());
+        return new BeanConfig({id, beans, instances, processors, optionalDependencies, childConfigs});
+    }
+
+    function prepareModels(source, modelClass) {
+        let iterator = source;
+        if (!(source instanceof Array)) {
+            iterator = Object.keys(source);
         }
+        iterator.forEach((key) => source[key] = new modelClass(source[key]));
+        return source;
     }
 
-    function registerBean(beanClass, name, dependencies, type) {
+    function buildDescriptor(beanClass, scope = BeanScope.SINGLETON, name, depsOverride, factory = false) {
         const beanName = name || generateBeanName(beanClass);
-        const nativeDependencies = getParamNames(beanClass);
-        config[beanName] = {
+        const dependencies = depsOverride || getParamNames(beanClass);
+        return {
             class: beanClass,
             name: beanName,
-            type,
-            dependencies: dependencies || nativeDependencies,
-            instances: []
+            factory,
+            scope,
+            dependencies
         };
-        return config[beanName];
     }
 
     function generateBeanName(beanClass) {

@@ -1,5 +1,0 @@
-export default {
-    FACTORY_BEAN: 'FACTORY_BEAN',
-    PLAIN_BEAN: 'PLAIN_BEAN',
-    SERVICE_BEAN: 'SERVICE_BEAN'
-};
