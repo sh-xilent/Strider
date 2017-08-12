@@ -44,20 +44,6 @@ export default function BeanConfig(moduleName, parentConfig) {
 
     function getBeanDescriptor(name) {
         let beanConfig = config[name];
-        if (beanConfig) {
-            return OBJECT_UTIL.deepClone(beanConfig);
-        }
-        const factoryName = Object.keys(config)
-            .find((key) => config[key].targetBean === name);
-        if (factoryName) {
-            beanConfig = config[name] = {
-                name,
-                factoryClass: config[factoryName].class,
-                dependencies: OBJECT_UTIL.clone(config[factoryName].dependencies),
-                type: BeanType.FACTORY_BEAN,
-                instances: []
-            };
-        }
         return beanConfig && OBJECT_UTIL.deepClone(beanConfig);
     }
 
@@ -77,6 +63,15 @@ export default function BeanConfig(moduleName, parentConfig) {
     function factory(targetBean, factoryClass, name, dependencies) {
         const beanConfig = registerBean(factoryClass, name, dependencies, BeanType.FACTORY_BEAN);
         beanConfig.targetBean = targetBean;
+
+        config[targetBean] = {
+            targetBean,
+            factoryClass: factoryClass,
+            dependencies: OBJECT_UTIL.clone(beanConfig.dependencies),
+            type: BeanType.FACTORY_BEAN,
+            instances: []
+        };
+
         return _this;
     }
 
