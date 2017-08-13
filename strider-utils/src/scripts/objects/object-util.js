@@ -50,14 +50,13 @@ export default function ObjectUtil() {
     }
 
     function cloneObject(object) {
-        function Clone() {}
-        Clone.prototype = object;
-
         const propsClones = {};
         Object.keys(object)
             .forEach((key) => propsClones[key] = deepClone(object[key]));
 
-        return Object.assign(new Clone(), propsClones);
+        const clone = Object.assign({}, propsClones);
+        clone.__proto__ = object;
+        return clone;
     }
 
     function cloneArray(array) {
