@@ -8,77 +8,48 @@ const ARGUMENT_NAMES = /([^\s,]+)/g;
 
 export const BeanConfig = Model.create({
     /**
-     *
+     * Unique identifier of bean configuration
      */
     id: null,
 
     /**
-     *
+     * Configured bean descriptors
      */
     beans: {},
 
     /**
-     *
+     * Simple bean instances
      */
     instances: {},
 
     /**
-     *
+     * Bean processors, executes after bean creation
      */
     processors: [],
 
     /**
-     *
+     * Determines that application should fail if there are unresolved dependencies
+     * true - dependencies are required. false - dependencies are optional
      */
     optionalDependencies: false,
 
     /**
-     *
+     * Child configurations. Could contain their own beans and other stuff
      */
     childConfigs: []
 });
 
 const BeanDescriptor = Model.create({
-    /**
-     *
-     */
     class: null,
-
-    /**
-     *
-     */
     name: null,
-
-    /**
-     *
-     */
     factory: false,
-
-    /**
-     *
-     */
     scope: BeanScope.SINGLETON,
-
-    /**
-     *
-     */
     dependencies: []
 });
 
 const ProcessorDescriptor = Model.create({
-    /**
-     *
-     */
     class: null,
-
-    /**
-     *
-     */
     scope: ProcessorScope.LOCAL,
-
-    /**
-     *
-     */
     dependencies: []
 });
 
@@ -93,7 +64,7 @@ export default function BeanConfigBuilder() {
     const beanDescriptors = {};
     const instances = {};
     const processorDescriptors = [];
-    const childConfigBuilders = [];
+    const childConfigs = [];
 
     let optionalDependencies = false;
 
@@ -147,15 +118,14 @@ export default function BeanConfigBuilder() {
     }
 
     function childConfig(config) {
-        Types.checkType(config, BeanConfigBuilder);
-        childConfigBuilders.push(config);
+        Types.checkType(config, BeanConfig);
+        childConfigs.push(config);
         return _this;
     }
 
     function build() {
         const beans = prepareModels(beanDescriptors, BeanDescriptor);
         const processors = prepareModels(processorDescriptors, ProcessorDescriptor);
-        const childConfigs = childConfigBuilders.map((config) => config.build());
         return new BeanConfig({id, beans, instances, processors, optionalDependencies, childConfigs});
     }
 
