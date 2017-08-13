@@ -126,7 +126,7 @@ export default function BeanConfigBuilder() {
     function build() {
         const beans = prepareModels(beanDescriptors, BeanDescriptor);
         const processors = prepareModels(processorDescriptors, ProcessorDescriptor);
-        return new BeanConfig({id, beans, instances, processors, optionalDependencies, childConfigs});
+        return BeanConfig.immutable({id, beans, instances, processors, optionalDependencies, childConfigs});
     }
 
     function prepareModels(source, modelClass) {
