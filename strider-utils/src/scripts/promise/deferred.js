@@ -3,7 +3,10 @@ export default function Deferred() {
     let resolver;
     let rejector;
 
-    let promise;
+    let promise = DeferredInstance.prototype = new Promise((resolve, reject) => {
+        resolver = resolve;
+        rejector = reject;
+    });
 
     function DeferredInstance() {
         return Object.assign(this, {
@@ -13,10 +16,6 @@ export default function Deferred() {
             reject
         });
     }
-    promise = DeferredInstance.prototype = new Promise((resolve, reject) => {
-        resolver = resolve;
-        rejector = reject;
-    });
 
     return new DeferredInstance();
 
