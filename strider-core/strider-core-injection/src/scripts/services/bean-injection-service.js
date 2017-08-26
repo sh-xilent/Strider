@@ -1,7 +1,7 @@
-import Types from 'types/types';
 import BeanScope from 'constants/bean-scope';
 import ProcessorScope from 'constants/processor-scope';
 import {BeanConfig} from 'config/bean-config';
+const {Types} = Strider.Module.import('strider-utils');
 
 export default function BeanInjectionService(beanConfig) {
     Types.check(arguments, BeanConfig);

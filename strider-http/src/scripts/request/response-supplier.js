@@ -1,4 +1,4 @@
-import Deferred from 'promise/deferred';
+const {Deferred} = Strider.Module.import('strider-utils');
 
 export default class ResponseSupplierFactory {
     create(isAsync = true) {

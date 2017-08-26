@@ -1,9 +1,9 @@
-import Types from 'types/types';
 import RequestMethodConstants from 'constants/request-method-constants';
 import NativeRequestFactory from './native-request';
 import {NativeRequest} from './native-request';
 import ResponseSupplierFactory from './response-supplier';
 import {ResponseSupplier} from './response-supplier';
+const {Types} = Strider.Module.import('strider-utils');
 
 export default function HttpRequestFactory(nativeRequestFactory, responseSupplierFactory) {
     Types.check(arguments, NativeRequestFactory, ResponseSupplierFactory);

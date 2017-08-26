@@ -1,9 +1,7 @@
-import Types from 'types/types';
 import HttpRequestFactory from 'request/http-request';
-import URL from "url/url";
-import Model from 'models/model';
 import ConfigModel from 'model/config-model';
 import ResourceModel from 'model/resource-model';
+const {Types, URL, Model} = Strider.Module.import('strider-utils');
 
 export default function HttpServiceConstructor(httpRequestFactory) {
     Types.check(arguments, HttpRequestFactory);

@@ -1,10 +1,8 @@
-import Types from 'types/types';
-import Model from 'models/model';
 import BeanScope from 'constants/bean-scope';
 import ProcessorScope from 'constants/processor-scope';
+const {Types, Model, FunctionUtil} = Strider.Module.import('strider-utils');
 
-const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-const ARGUMENT_NAMES = /([^\s,]+)/g;
+const FUNCTION_UTIL = new FunctionUtil();
 
 export const BeanConfig = Model.create({
     /**
@@ -103,7 +101,7 @@ export default function BeanConfigBuilder() {
     }
 
     function processor(processorClass, scope = ProcessorScope.LOCAL, depsOverride) {
-        const dependencies = depsOverride || getParamNames(processorClass);
+        const dependencies = depsOverride || FUNCTION_UTIL.getParamNames(processorClass);
         processorDescriptors.push({
             class: processorClass,
             scope,
@@ -139,8 +137,8 @@ export default function BeanConfigBuilder() {
     }
 
     function buildDescriptor(beanClass, scope = BeanScope.SINGLETON, name, depsOverride, factory = false) {
-        const beanName = name || generateBeanName(beanClass);
-        const dependencies = depsOverride || getParamNames(beanClass);
+        const beanName = name || FUNCTION_UTIL.generateBeanName(beanClass);
+        const dependencies = depsOverride || FUNCTION_UTIL.getParamNames(beanClass);
         return {
             class: beanClass,
             name: beanName,
@@ -148,20 +146,5 @@ export default function BeanConfigBuilder() {
             scope,
             dependencies
         };
-    }
-
-    function generateBeanName(beanClass) {
-        const className = beanClass.name;
-        return className.charAt(0).toLowerCase() + className.slice(1)
-    }
-
-    function getParamNames(func) {
-        const fnStr = func.toString().replace(STRIP_COMMENTS, '');
-        const args = fnStr.slice(fnStr.indexOf('(') + 1, fnStr.indexOf(')'))
-            .match(ARGUMENT_NAMES);
-        if(args === null) {
-            return [];
-        }
-        return args;
     }
 }

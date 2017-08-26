@@ -1,4 +1,4 @@
-import Model from 'models/model';
+const {Model} = Strider.Module.import('strider-utils');
 
 export default Model.create({
     /**

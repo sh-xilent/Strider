@@ -1,5 +1,5 @@
-import Model from 'models/model';
 import REQUEST_METHOD from "constants/request-method-constants";
+const {Model} = Strider.Module.import('strider-utils');
 
 export default Model.create({
     /**

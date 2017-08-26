@@ -1,5 +1,10 @@
-export {BeanScope} from 'constants/bean-scope';
-export {ProcessorScope} from 'constants/processor-scope';
-export {BeanConfigBuilder, BeanConfig} from 'config/bean-config';
-export {BeanProcessor} from 'processor/bean-processor';
-export {BeanInjectionService} from 'services/bean-injection-service';
+Strider.Module.register(new Strider.Module('strider-core/strider-core-injection', ['strider-utils'], (exports) => {
+    Object.assign(exports, {
+        BeanConfigBuilder: require('config/bean-config').default,
+        BeanConfig: require('config/bean-config').BeanConfig,
+        BeanScope: require('constants/bean-scope').default,
+        ProcessorScope: require('constants/processor-scope').default,
+        BeanProcessor: require('processor/bean-processor').default,
+        BeanInjectionService: require('services/bean-injection-service').default,
+    });
+}));

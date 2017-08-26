@@ -1,7 +1,7 @@
 import BeanProcessor from 'processor/bean-processor';
 import HttpService from 'services/http-service';
 import HttpServiceConstructor from 'services/http-service-constructor';
-import Types from 'types/types';
+const {Types} = Strider.Module.import('strider-utils');
 
 HttpServiceProcessor.prototype = new BeanProcessor();
 
