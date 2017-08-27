@@ -1,7 +1,9 @@
+import {AppConfig} from "../config/app-config";
 import DocumentReadyEvent from 'events/doc-ready-event';
 import DocumentReadyEventSource from 'events/doc-ready-event-source';
-const {Deferred} = Strider.Module.import('strider-utils');
+const {Deferred, Types} = Strider.Module.import('strider-utils');
 const {EventBus} = Strider.Module.import('strider-core/strider-core-event');
+const {BeanInjectionService} = Strider.Module.import('strider-core/strider-core-injection');
 
 const ApplicationState = {
     CREATED: 'CREATED',
@@ -11,17 +13,20 @@ const ApplicationState = {
     STOPPED: 'STOPPED'
 };
 
-export default function Application() {
+export default function Application(config) {
+    Types.check(arguments, AppConfig);
 
     const _this = this;
 
     let eventBus;
+    let beanInjectionService;
 
     let state = ApplicationState.CREATED;
 
     return Object.assign(this, {
         start,
-        stop
+        stop,
+        getBeanInjectionService
     });
 
     function start() {
@@ -31,7 +36,7 @@ export default function Application() {
 
         eventBus.registerSource(new DocumentReadyEventSource());
         return eventBus.eventPromise(DocumentReadyEvent)
-            .then(() => console.log('Application started'))
+            .then(() => beanInjectionService = new BeanInjectionService(config.beanConfig))
             .then(() => {
                 pushState(ApplicationState.STARTED);
                 return _this;
@@ -42,16 +47,20 @@ export default function Application() {
         pushState(ApplicationState.STOPPING);
 
         eventBus = null;
+        beanInjectionService = null;
 
         const deferred = new Deferred();
         deferred.resolve();
 
         return deferred.promise
-            .then(() => console.log('Application stopped'))
             .then(() => {
                 pushState(ApplicationState.STOPPED);
                 return _this;
             })
+    }
+
+    function getBeanInjectionService() {
+        return beanInjectionService;
     }
 
     function pushState(targetState) {

@@ -98,10 +98,10 @@ function Beans(beanConfig, childBeans, globalProcessors) {
 
     function postProcessInstance(instance) {
         if (processors) {
-            processors.forEach((processor) => instance = processor.process(instance));
+            processors.forEach((processor) => instance = processor.transform(instance));
         }
         if (globalProcessors) {
-            globalProcessors.forEach((processor) => instance = processor.process(instance));
+            globalProcessors.forEach((processor) => instance = processor.transform(instance));
         }
         return instance;
     }

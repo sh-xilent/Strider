@@ -2,16 +2,28 @@
 
 import gulp from 'gulp';
 import babel from 'gulp-babel';
-import source from 'vinyl-source-stream';
 import rename from 'gulp-rename';
+import fileCopy from 'gulp-file-copy';
+import source from 'vinyl-source-stream';
 import browserify from 'browserify';
 
 const DIST_PATH = 'dist/';
 const TEMP_PATH = 'temp/';
 
 const DEFAULT_DIST_SCRIPTS_PATH = 'scripts/';
+const DEFAULT_DIST_RESOURCES_PATH = 'resources/';
 
 const modules = {
+    'test-strider-app': {
+        sources: 'test-strider-app/src/scripts/',
+        entry: 'test-strider-app.js',
+        resources: 'test-strider-app/src/resources/',
+        dependencies: [
+            'strider-app',
+            'strider-http'
+        ]
+    },
+
     'strider-app': {
         sources: 'strider-app/src/scripts/',
         entry: 'strider-app.js',
@@ -49,6 +61,8 @@ const modules = {
     }
 };
 
+gulp.task.apply(gulp, ['js:test-strider-app', ...buildModule('test-strider-app')]);
+
 gulp.task('js:strider-root', [
     'js:strider-utils',
     'js:strider-http',
@@ -73,6 +87,12 @@ function buildModule(name) {
     const module = modules[name];
     return [getDependencies(module), () => {
 
+        if (module.resources) {
+            gulp.src(module.resources + '*')
+                .pipe(fileCopy(buildDistResourcesPath(module), {
+                    start: module.resources
+                }));
+        }
         gulp.src(buildSourcesPath(module))
             .pipe(babel({
                 presets: ['es2015']
@@ -108,4 +128,8 @@ function buildSourcesPath(module) {
 
 function buildDistScriptsPath(module) {
     return `${DIST_PATH}${DEFAULT_DIST_SCRIPTS_PATH}${module.dest || ''}`;
+}
+
+function buildDistResourcesPath(module) {
+    return `${DIST_PATH}${DEFAULT_DIST_RESOURCES_PATH}${module.dest || ''}`;
 }

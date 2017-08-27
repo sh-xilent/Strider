@@ -1,0 +1,7 @@
+{
+  "testData": "test value",
+  "testArray": [
+    "val1",
+    "val3"
+  ]
+}

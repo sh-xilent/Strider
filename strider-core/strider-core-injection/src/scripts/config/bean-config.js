@@ -1,6 +1,6 @@
 import BeanScope from 'constants/bean-scope';
 import ProcessorScope from 'constants/processor-scope';
-const {Types, Model, FunctionUtil} = Strider.Module.import('strider-utils');
+const {Types, Model, FunctionUtil, ObjectTransformer} = Strider.Module.import('strider-utils');
 
 const FUNCTION_UTIL = new FunctionUtil();
 
@@ -101,7 +101,8 @@ export default function BeanConfigBuilder() {
     }
 
     function processor(processorClass, scope = ProcessorScope.LOCAL, depsOverride) {
-        const dependencies = depsOverride || FUNCTION_UTIL.getParamNames(processorClass);
+        Types.checkType(processorClass.prototype, ObjectTransformer);
+        const dependencies = depsOverride || processorClass.inject || FUNCTION_UTIL.getParamNames(processorClass);
         processorDescriptors.push({
             class: processorClass,
             scope,
@@ -138,7 +139,7 @@ export default function BeanConfigBuilder() {
 
     function buildDescriptor(beanClass, scope = BeanScope.SINGLETON, name, depsOverride, factory = false) {
         const beanName = name || FUNCTION_UTIL.generateBeanName(beanClass);
-        const dependencies = depsOverride || FUNCTION_UTIL.getParamNames(beanClass);
+        const dependencies = depsOverride || beanClass.inject || FUNCTION_UTIL.getParamNames(beanClass);
         return {
             class: beanClass,
             name: beanName,

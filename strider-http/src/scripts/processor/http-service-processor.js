@@ -1,18 +1,18 @@
-import BeanProcessor from 'processor/bean-processor';
 import HttpService from 'services/http-service';
 import HttpServiceConstructor from 'services/http-service-constructor';
-const {Types} = Strider.Module.import('strider-utils');
+const {Types, ObjectTransformer} = Strider.Module.import('strider-utils');
 
-HttpServiceProcessor.prototype = new BeanProcessor();
+HttpServiceProcessor.prototype = new ObjectTransformer();
 
+HttpServiceProcessor.inject = ['httpServiceConstructor'];
 export default function HttpServiceProcessor(httpServiceConstructor) {
     Types.check(arguments, HttpServiceConstructor);
 
     return Object.assign(this, {
-        process
+        transform
     });
 
-    function process(bean) {
+    function transform(bean) {
         if (bean instanceof HttpService) {
             return httpServiceConstructor.constructFromInstance(bean);
         }
