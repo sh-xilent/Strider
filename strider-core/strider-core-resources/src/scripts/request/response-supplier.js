@@ -5,6 +5,7 @@ export default class ResponseSupplierFactory {
         return isAsync ? new ResponseAsyncSupplier() : new ResponseSupplier();
     }
 }
+ResponseSupplierFactory.beanName = 'responseSupplierFactory';
 
 export function ResponseSupplier() {
 

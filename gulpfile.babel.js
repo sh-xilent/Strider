@@ -29,7 +29,7 @@ const modules = {
         entry: 'strider-app.js',
         dependencies: [
             'strider-utils',
-            'strider-core-event'
+            'strider-core'
         ]
     },
     'strider-utils': {
@@ -39,9 +39,20 @@ const modules = {
     'strider-http': {
         sources: 'strider-http/src/scripts/',
         entry: 'strider-http.js',
-        dependencies: ['strider-utils']
+        dependencies: ['strider-utils', 'strider-core-resources']
     },
     // Core
+    'strider-core': {
+        sources: 'strider-core/',
+        entry: 'strider-core.js',
+        dest: 'strider-core/',
+        dependencies: [
+            'strider-core-modules',
+            'strider-core-event',
+            'strider-core-injection',
+            'strider-core-resources'
+        ]
+    },
     'strider-core-modules': {
         sources: 'strider-core/strider-core-modules/src/scripts/',
         entry: 'strider-core-modules.js',
@@ -56,6 +67,12 @@ const modules = {
     'strider-core-injection': {
         sources: 'strider-core/strider-core-injection/src/scripts/',
         entry: 'strider-core-injection.js',
+        dest: 'strider-core/',
+        dependencies: ['strider-utils']
+    },
+    'strider-core-resources': {
+        sources: 'strider-core/strider-core-resources/src/scripts/',
+        entry: 'strider-core-resources.js',
         dest: 'strider-core/',
         dependencies: ['strider-utils']
     }
@@ -74,14 +91,11 @@ gulp.task.apply(gulp, ['js:strider-app', ...buildModule('strider-app')]);
 gulp.task.apply(gulp, ['js:strider-utils', ...buildModule('strider-utils')]);
 gulp.task.apply(gulp, ['js:strider-http', ...buildModule('strider-http')]);
 
-gulp.task('js:strider-core', [
-    'js:strider-core-modules',
-    'js:strider-core-event',
-    'js:strider-core-injection'
-]);
+gulp.task.apply(gulp, ['js:strider-core', ...buildModule('strider-core')]);
 gulp.task.apply(gulp, ['js:strider-core-modules', ...buildModule('strider-core-modules')]);
 gulp.task.apply(gulp, ['js:strider-core-event', ...buildModule('strider-core-event')]);
 gulp.task.apply(gulp, ['js:strider-core-injection', ...buildModule('strider-core-injection')]);
+gulp.task.apply(gulp, ['js:strider-core-resources', ...buildModule('strider-core-resources')]);
 
 function buildModule(name) {
     const module = modules[name];
@@ -102,7 +116,7 @@ function buildModule(name) {
         return browserify({
             expose: name,
             entries: [buildEntryPath(module)],
-            paths: [buildTempScriptsPath(module)]
+            paths: buildBundlePaths(module)
         }).bundle()
             .pipe(source(module.entry))
             .pipe(rename(module.entry))
@@ -116,6 +130,17 @@ function getDependencies(module) {
 
 function buildEntryPath(module) {
     return `${DIST_PATH}${TEMP_PATH}${module.sources}${module.entry}`;
+}
+
+function buildBundlePaths(module) {
+    const moduleTempPath = buildTempScriptsPath(module);
+    if (!module.dependencies) {
+        return [moduleTempPath];
+    }
+    const otherPaths = module.dependencies
+        .map((dependency) => modules[dependency])
+        .map(buildTempScriptsPath);
+    return [moduleTempPath, ...otherPaths];
 }
 
 function buildTempScriptsPath(module) {

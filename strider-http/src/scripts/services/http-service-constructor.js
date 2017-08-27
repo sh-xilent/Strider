@@ -1,9 +1,11 @@
-import HttpRequestFactory from 'request/http-request';
 import ConfigModel from 'model/config-model';
 import ResourceModel from 'model/resource-model';
+const {HttpRequestFactory} = Strider.Module.import('strider-core/strider-core-resources');
 const {Types, URL, Model} = Strider.Module.import('strider-utils');
 
+HttpServiceConstructor.beanName = 'httpServiceConstructor';
 HttpServiceConstructor.inject = ['httpRequestFactory'];
+
 export default function HttpServiceConstructor(httpRequestFactory) {
     Types.check(arguments, HttpRequestFactory);
 

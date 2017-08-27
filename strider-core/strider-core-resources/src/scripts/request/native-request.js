@@ -3,6 +3,7 @@ export default class NativeRequestFactory {
         return new NativeRequest(isAsync);
     }
 }
+NativeRequestFactory.beanName = 'nativeRequestFactory';
 
 export function NativeRequest(isAsync) {
 

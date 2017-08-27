@@ -138,7 +138,7 @@ export default function BeanConfigBuilder() {
     }
 
     function buildDescriptor(beanClass, scope = BeanScope.SINGLETON, name, depsOverride, factory = false) {
-        const beanName = name || FUNCTION_UTIL.generateBeanName(beanClass);
+        const beanName = name || beanClass.beanName || FUNCTION_UTIL.generateBeanName(beanClass);
         const dependencies = depsOverride || beanClass.inject || FUNCTION_UTIL.getParamNames(beanClass);
         return {
             class: beanClass,

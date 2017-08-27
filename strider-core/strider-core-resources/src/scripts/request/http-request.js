@@ -5,7 +5,9 @@ import ResponseSupplierFactory from './response-supplier';
 import {ResponseSupplier} from './response-supplier';
 const {Types} = Strider.Module.import('strider-utils');
 
+HttpRequestFactory.beanName = 'httpRequestFactory';
 HttpRequestFactory.inject = ['nativeRequestFactory', 'responseSupplierFactory'];
+
 export default function HttpRequestFactory(nativeRequestFactory, responseSupplierFactory) {
     Types.check(arguments, NativeRequestFactory, ResponseSupplierFactory);
 

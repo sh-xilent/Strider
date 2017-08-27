@@ -1,5 +1,5 @@
 Strider.Module.register(new Strider.Module('strider-app',
-    ['strider-utils', 'strider-core/strider-core-event', 'strider-core/strider-core-injection'],
+    ['strider-utils', 'strider-core/strider-core-event', 'strider-core/strider-core-injection', 'strider-core/strider-core-resources'],
     (exports) => {
         Object.assign(exports, {
             Application: require('app/application').default,

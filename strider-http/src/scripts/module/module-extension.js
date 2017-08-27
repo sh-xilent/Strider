@@ -1,17 +1,12 @@
 import HttpServiceConstructor from 'services/http-service-constructor';
-import HttpRequestFactory from 'request/http-request';
-import NativeRequestFactory from 'request/native-request';
-import ResponseSupplierFactory from 'request/response-supplier';
 import HttpServiceProcessor from 'processor/http-service-processor';
-const {ObjectTransformer} = Strider.Module.import('strider-utils');
+const {ProcessorScope} = Strider.Module.import('strider-core/strider-core-injection');
+const {ResourcesModuleExtension} = Strider.Module.import('strider-core/strider-core-resources');
 
-export default class HttpModuleExtension extends ObjectTransformer {
+export default class HttpModuleExtension extends ResourcesModuleExtension {
     transform(moduleConfig) {
-        return moduleConfig
-            .bean(HttpRequestFactory)
-            .bean(NativeRequestFactory)
-            .bean(ResponseSupplierFactory)
+        return super.transform(moduleConfig)
             .service(HttpServiceConstructor)
-            .processor(HttpServiceProcessor);
+            .processor(HttpServiceProcessor, ProcessorScope.GLOBAL);
     }
 }

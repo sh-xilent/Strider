@@ -1,7 +1,8 @@
-Strider.Module.register(new Strider.Module('test-strider-app', ['strider-app', 'strider-http'], () => {
+Strider.Module.register(new Strider.Module('test-strider-app', ['strider-app', 'strider-http', 'strider-core/strider-core-resources'], () => {
 
     const {Application, AppConfigBuilder, ModuleConfig} = Strider.Module.import('strider-app');
-    const {HttpModuleExtension, HttpService, REQUEST_METHOD_CONSTANTS} = Strider.Module.import('strider-http');
+    const {HttpModuleExtension, HttpService} = Strider.Module.import('strider-http');
+    const {REQUEST_METHOD_CONSTANTS} = Strider.Module.import('strider-core/strider-core-resources');
 
     class TestHttpService extends HttpService {
         getRequest(urlPath) {
