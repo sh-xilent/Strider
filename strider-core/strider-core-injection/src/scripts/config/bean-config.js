@@ -37,7 +37,7 @@ export const BeanConfig = Model.create({
     childConfigs: []
 });
 
-const BeanDescriptor = Model.create({
+export const BeanDescriptor = Model.create({
     class: null,
     name: null,
     factory: false,
@@ -45,7 +45,7 @@ const BeanDescriptor = Model.create({
     dependencies: []
 });
 
-const ProcessorDescriptor = Model.create({
+export const ProcessorDescriptor = Model.create({
     class: null,
     scope: ProcessorScope.LOCAL,
     dependencies: []

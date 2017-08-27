@@ -1,44 +1,69 @@
 import BeanScope from 'constants/bean-scope';
 import ProcessorScope from 'constants/processor-scope';
-import {BeanConfig} from 'config/bean-config';
+import {BeanConfig, BeanDescriptor} from 'config/bean-config';
 const {Types} = Strider.Module.import('strider-utils');
 
-export default function BeanInjectionService(beanConfig) {
+export default function BeanInjectionService(...beanConfigs) {
     Types.check(arguments, BeanConfig);
 
-    const root = buildRoot();
+    const globalProcessors = [];
+
+    const customBeans = buildCustomBeans();
+    const rootBeans = [customBeans, ...buildRoots()];
 
     return Object.assign(this, {
-        getBean
+        getBean,
+        registerInstance,
+        registerBean
     });
 
     function getBean(name) {
-        return root.getBean(name);
+        return rootBeans
+            .map((root) => root.getBean(name))
+            .find(Boolean);
     }
 
-    function buildRoot() {
+    function registerInstance(name, instance) {
+        customBeans.registerInstance(name, instance);
+    }
+
+    function registerBean(beanDescriptor) {
+        customBeans.registerBean(beanDescriptor);
+    }
+
+    function buildCustomBeans() {
+        return buildNode(new BeanConfig({}), {}, globalProcessors, []);
+    }
+
+    function buildRoots() {
         const processedNodes = {};
-        const globalProcessors = [];
-        return buildNode(beanConfig, processedNodes, globalProcessors);
+
+        const beans = [];
+        for (let i = 0; i < beanConfigs.length; i++) {
+            beans.push(buildNode(beanConfigs[i], processedNodes, globalProcessors, [...beans]));
+        }
+        return beans;
     }
 
-    function buildNode(config, processedNodes, globalProcessors) {
+    function buildNode(config, processedNodes, globalProcessors, parentBeans) {
         if (processedNodes[config.id]) {
             return processedNodes[config.id];
         }
         const childNodes = config.childConfigs
-            .map((child) => buildNode(child, processedNodes, globalProcessors));
+            .map((child) => buildNode(child, processedNodes, globalProcessors, parentBeans));
 
-        const node = new Beans(config, childNodes, globalProcessors);
+        const node = new Beans(config, childNodes, globalProcessors, parentBeans);
         processedNodes[config.id] = node;
 
         return node;
     }
 }
 
-function Beans(beanConfig, childBeans, globalProcessors) {
+function Beans(beanConfig, childBeans, globalProcessors, parentBeans) {
 
     const instances = {};
+
+    const customDescriptors = {};
 
     const pendingInit = {};
 
@@ -46,19 +71,38 @@ function Beans(beanConfig, childBeans, globalProcessors) {
     applyGlobalProcessors(initProcessors(ProcessorScope.GLOBAL));
 
     return Object.assign(this, {
-        getBean
+        getBean,
+        registerInstance,
+        registerBean
     });
 
     function getBean(name) {
         if (instances[name]) {
             return instances[name];
         }
-        if (beanConfig.beans[name]) {
-            return initBean(beanConfig.beans[name]);
+        if (beanConfig.instances[name]) {
+            return beanConfig.instances[name];
         }
-        return childBeans
+        const beanDescriptor = beanConfig.beans[name] || customDescriptors[name];
+        if (beanDescriptor) {
+            return initBean(beanDescriptor);
+        }
+        const childBean = childBeans
             .map((child) => child.getBean(name))
             .find((bean) => bean);
+
+        return childBean || parentBeans
+            .map((beans) => beans.getBean(name))
+            .find(Boolean);
+    }
+
+    function registerInstance(name, instance) {
+        instances[name] = instance;
+    }
+
+    function registerBean(beanDescriptor) {
+        Types.checkType(beanDescriptor, BeanDescriptor);
+        customDescriptors[beanDescriptor.name] = beanDescriptor;
     }
 
     function applyGlobalProcessors(processors) {

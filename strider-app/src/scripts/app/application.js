@@ -1,6 +1,8 @@
-import {AppConfig} from "../config/app-config";
+import AppConfigBuilder from "config/app-config";
+import {AppConfig} from "config/app-config";
 import DocumentReadyEvent from 'events/doc-ready-event';
 import DocumentReadyEventSource from 'events/doc-ready-event-source';
+import ResourcesModule from 'modules/resources-module';
 const {Deferred, Types} = Strider.Module.import('strider-utils');
 const {EventBus} = Strider.Module.import('strider-core/strider-core-event');
 const {BeanInjectionService} = Strider.Module.import('strider-core/strider-core-injection');
@@ -12,6 +14,10 @@ const ApplicationState = {
     STOPPING: 'STOPPING',
     STOPPED: 'STOPPED'
 };
+
+const COMMON_APPLICATION_CONFIG = new AppConfigBuilder()
+    .module(ResourcesModule)
+    .build();
 
 export default function Application(config) {
     Types.check(arguments, AppConfig);
@@ -36,7 +42,7 @@ export default function Application(config) {
 
         eventBus.registerSource(new DocumentReadyEventSource());
         return eventBus.eventPromise(DocumentReadyEvent)
-            .then(() => beanInjectionService = new BeanInjectionService(config.beanConfig))
+            .then(() => beanInjectionService = new BeanInjectionService(COMMON_APPLICATION_CONFIG.beanConfig, config.beanConfig))
             .then(() => {
                 pushState(ApplicationState.STARTED);
                 return _this;
