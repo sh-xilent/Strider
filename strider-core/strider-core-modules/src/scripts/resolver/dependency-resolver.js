@@ -22,7 +22,7 @@ export default function DependencyResolver() {
         modules[name] = {module};
 
         const unresolvedDependencies = module.getDependencies()
-            .filter((dependency) => !modules[dependency]);
+            .filter((dependency) => !modules[dependency] || !modules[dependency].module.isInitialized());
 
         if (!unresolvedDependencies.length) {
             initModule(modules[name]);
